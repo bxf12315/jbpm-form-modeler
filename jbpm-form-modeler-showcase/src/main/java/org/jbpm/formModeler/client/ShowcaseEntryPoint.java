@@ -34,6 +34,12 @@ import org.jboss.errai.ioc.client.api.EntryPoint;
 import org.jboss.errai.ioc.client.container.IOCBeanDef;
 import org.jboss.errai.ioc.client.container.SyncBeanManager;
 import org.jbpm.formModeler.client.resources.StandaloneResources;
+import org.kie.workbench.common.services.security.KieWorkbenchACL;
+import org.kie.workbench.common.services.security.KieWorkbenchPolicy;
+import org.kie.workbench.common.services.shared.security.KieWorkbenchSecurityService;
+import org.jboss.errai.common.client.api.Caller;
+import org.jboss.errai.common.client.api.RemoteCallback;
+import org.uberfire.client.UberFirePreferences;
 import org.uberfire.client.mvp.AbstractWorkbenchPerspectiveActivity;
 import org.uberfire.client.mvp.ActivityManager;
 import org.uberfire.client.mvp.PlaceManager;
@@ -56,11 +62,24 @@ public class ShowcaseEntryPoint {
     @Inject
     private ActivityManager activityManager;
 
+    @Inject
+    private KieWorkbenchACL kieACL;
+
+    @Inject
+    private Caller<KieWorkbenchSecurityService> kieSecurityService;
+    
     @AfterInitialization
     public void startApp() {
-        loadStyles();
-        setupMenu();
-        hideLoadingPopup();
+        UberFirePreferences.setProperty( "org.uberfire.client.workbench.widgets.listbar.context.disable", true );
+        kieSecurityService.call( new RemoteCallback<String>() {
+            public void callback( final String str ) {
+                KieWorkbenchPolicy policy = new KieWorkbenchPolicy( str );
+                kieACL.activatePolicy( policy );
+                loadStyles();
+                setupMenu();
+                hideLoadingPopup();
+            }
+        } ).loadPolicy();
     }
 
     private void loadStyles() {
